@@ -1,0 +1,103 @@
+--vhdl code:
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity mod17_counter is
+    Port (
+        clk : in STD_LOGIC;
+        rst : in STD_LOGIC;
+        Q   : out STD_LOGIC_VECTOR(3 downto 0)
+    );
+end mod17_counter;
+
+architecture Behavioral of mod17_counter is
+    signal count : unsigned(3 downto 0) := "0000";
+begin
+    process(clk, rst)
+    begin
+        if rst = '1' then
+            count <= "0000";  -- Reset count to zero.
+        elsif rising_edge(clk) then
+            if count = "10000" then
+                count <= "0000";  -- Reset to zero when reaching 16 (mod-17).
+            else
+                count <= count + 1;  -- Increment count.
+            end if;
+        end if;
+    end process;
+
+    Q <= std_logic_vector(count);  -- Convert unsigned to STD_LOGIC_VECTOR for output.
+end Behavioral;
+
+
+test_bench code:
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity tb_mod17_counter is
+end tb_mod17_counter;
+
+architecture tb_behavior of tb_mod17_counter is
+    signal clk : STD_LOGIC := '0';
+    signal rst : STD_LOGIC := '0';
+    signal Q   : STD_LOGIC_VECTOR(3 downto 0);
+
+    constant CLK_PERIOD : time := 10 ns;  -- Adjust the clock period as needed.
+
+    component mod17_counter
+        Port (
+            clk : in STD_LOGIC;
+            rst : in STD_LOGIC;
+            Q   : out STD_LOGIC_VECTOR(3 downto 0)
+        );
+    end component;
+
+begin
+    -- Instantiate the mod17_counter module
+    UUT : mod17_counter
+        port map (
+            clk => clk,
+            rst => rst,
+            Q   => Q
+        );
+
+    -- Clock process
+    process
+    begin
+        while now < 1000 ns  -- Simulation duration, adjust as needed.
+            loop
+                clk <= '0';
+                wait for CLK_PERIOD / 2;
+                clk <= '1';
+                wait for CLK_PERIOD / 2;
+            end loop;
+        wait;
+    end process;
+
+    -- Stimulus process
+    process
+    begin
+        wait for 20 ns;  -- Initial wait for stability
+        rst <= '1';      -- Assert reset
+        wait for 10 ns;
+        rst <= '0';      -- Deassert reset
+
+        wait for 100 ns;  -- Simulate for 100 ns
+        assert Q = "0000" report "Test Case 1 Failed" severity ERROR;
+
+        wait for 50 ns;
+        assert Q = "0001" report "Test Case 2 Failed" severity ERROR;
+
+        wait for 50 ns;
+        assert Q = "0010" report "Test Case 3 Failed" severity ERROR;
+
+        -- Continue testing as needed
+
+        wait;
+    end process;
+
+end tb_behavior;
